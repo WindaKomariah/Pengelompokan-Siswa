@@ -1,5 +1,8 @@
-pandas 
-scikit-learn==1.3.2 
 streamlit
-kmodes 
-openpyxl
+pandas
+numpy
+scikit-learn
+kmodes
+fpdf
+matplotlib
+seaborn
