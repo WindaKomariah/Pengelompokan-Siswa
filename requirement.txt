@@ -6,3 +6,4 @@ kmodes
 fpdf
 matplotlib
 seaborn
+openpyxl
