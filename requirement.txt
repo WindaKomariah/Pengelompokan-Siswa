@@ -1,5 +1,5 @@
-streamlit
 pandas 
-sckit-learn
+scikit-learn
+streamlit
 kmodes 
 openpyxl
