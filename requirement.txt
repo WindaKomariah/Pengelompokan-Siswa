@@ -3,7 +3,5 @@ pandas
 numpy
 scikit-learn
 kmodes
-fpdf
 matplotlib
 seaborn
-openpyxl
