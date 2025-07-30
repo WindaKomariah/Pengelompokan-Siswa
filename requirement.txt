@@ -1,7 +1,7 @@
 streamlit
 pandas
 numpy
-scikit-learn==1.7.0
+scikit-learn
 kmodes
 fpdf
 matplotlib
