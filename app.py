@@ -768,7 +768,8 @@ if st.session_state.current_menu == "Unggah Data":
     uploaded_file = st.file_uploader("Pilih File Excel Dataset", type=["xlsx"], help="Unggah file Excel Anda di sini. Hanya format .xlsx yang didukung.")
     if uploaded_file:
         try:
-            df = pd.read_excel(uploaded_file)
+            df = pd.read_excel(uploaded_file, 
+                            engine='openpyxl')
             st.session_state.df_original = df
             st.success("Data berhasil diunggah! Anda dapat melanjutkan ke langkah praproses.")
             st.subheader("Preview Data yang Diunggah:")
@@ -1208,3 +1209,4 @@ elif st.session_state.current_menu == "Lihat Profil Siswa Individual":
                     )
             else:
                 st.warning("Mohon lakukan klasterisasi terlebih dahulu (Menu *'Klasterisasi Data K-Prototypes'*) untuk menghasilkan data profil PDF.")
+
