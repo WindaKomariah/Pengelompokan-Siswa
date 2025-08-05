@@ -769,7 +769,7 @@ if st.session_state.current_menu == "Unggah Data":
     if uploaded_file:
         try:
             df = pd.read_excel(uploaded_file, 
-                            engine='openpyxl')
+                                engine='openpyxl')
             st.session_state.df_original = df
             st.success("Data berhasil diunggah! Anda dapat melanjutkan ke langkah praproses.")
             st.subheader("Preview Data yang Diunggah:")
@@ -856,7 +856,7 @@ elif st.session_state.current_menu == "Klasterisasi Data K-Prototypes":
                 st.dataframe(df_original_with_cluster_display, use_container_width=True, height=300)
                 
                 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True) 
-
+                
                 st.subheader("Ringkasan Klaster: Jumlah Siswa per Kelompok")
                 jumlah_per_klaster = df_original_with_cluster_display["Klaster"].value_counts().sort_index().reset_index()
                 jumlah_per_klaster.columns = ["Klaster", "Jumlah Siswa"]
@@ -1209,6 +1209,3 @@ elif st.session_state.current_menu == "Lihat Profil Siswa Individual":
                     )
             else:
                 st.warning("Mohon lakukan klasterisasi terlebih dahulu (Menu *'Klasterisasi Data K-Prototypes'*) untuk menghasilkan data profil PDF.")
-
-
-
