@@ -7,3 +7,4 @@ kmodes==0.12.2
 fpdf2==2.7.7
 matplotlib==3.8.4
 seaborn==0.13.2
+openpyxl
