@@ -534,7 +534,8 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
     for key, val in display_data.items():
         pdf.cell(0, 7, f"{key}: {val}", ln=True)
 
-    return pdf.output(dest='S')
+    # BARIS INI YANG DIUBAH: MENAMBAHKAN .encode('latin-1')
+    return pdf.output(dest='S').encode('latin-1')
 
 def preprocess_data(df):
     """
