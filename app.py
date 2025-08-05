@@ -7,6 +7,7 @@ from fpdf import FPDF
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import io
 
 # --- KONSTANTA GLOBAL ---
 # Warna (Pembaruan untuk palet yang lebih harmonis dan profesional)
@@ -536,6 +537,7 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
 
     # BARIS YANG DIPERBAIKI
     return pdf.output(dest='S')
+  return pdf_output_bytes
 
 def preprocess_data(df):
     """
@@ -1210,4 +1212,5 @@ elif st.session_state.current_menu == "Lihat Profil Siswa Individual":
                     )
             else:
                 st.warning("Mohon lakukan klasterisasi terlebih dahulu (Menu 'Klasterisasi Data K-Prototypes') untuk menghasilkan data profil PDF.")
+
 
