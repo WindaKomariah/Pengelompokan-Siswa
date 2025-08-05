@@ -534,7 +534,7 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
     for key, val in display_data.items():
         pdf.cell(0, 7, f"{key}: {val}", ln=True)
 
-    return pdf.output(dest='S').encode('latin-1')
+    return pdf.output(dest='S')
 
 def preprocess_data(df):
     """
@@ -1209,5 +1209,6 @@ elif st.session_state.current_menu == "Lihat Profil Siswa Individual":
                     )
             else:
                 st.warning("Mohon lakukan klasterisasi terlebih dahulu (Menu *'Klasterisasi Data K-Prototypes'*) untuk menghasilkan data profil PDF.")
+
 
 
