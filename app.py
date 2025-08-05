@@ -483,8 +483,7 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
     """
     pdf = FPDF()
     pdf.add_page()
-    
-    # Tambahkan penanganan error di sini untuk mencegah crash
+    
     try:
         # --- Bagian Judul ---
         pdf.set_font("Arial", "B", 16)
@@ -538,7 +537,7 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
         }
 
         for key, val in display_data.items():
-            # Ini baris kunci yang diperbaiki. Kami membungkus teks dalam try-except
+            # Ini baris kunci yang diperbaiki dengan penanganan error Unicode
             try:
                 pdf.cell(0, 7, f"{key}: {val}", ln=True)
             except UnicodeEncodeError:
@@ -546,8 +545,10 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
                 cleaned_text = f"{key}: {val}".encode('latin-1', 'ignore').decode('latin-1')
                 pdf.cell(0, 7, cleaned_text, ln=True)
         
-        # Perubahan pada baris ini juga, untuk memastikan outputnya aman
-        return pdf.output(dest='S').encode('latin-1', 'ignore')
+        # --- PERBAIKAN UTAMA DI SINI ---
+        # Output dari pdf.output(dest='S') sudah berupa bytes (bytearray)
+        # Tidak perlu lagi memanggil .encode()
+        return pdf.output(dest='S')
 
     except Exception as e:
         # Menangkap error lain yang mungkin terjadi saat membuat PDF
