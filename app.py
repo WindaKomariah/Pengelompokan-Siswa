@@ -78,8 +78,8 @@ custom_css = f"""
         margin-bottom: 1rem !important;
         padding-top: 0 !important;
         padding-bottom: 0 !important;
-        font-size: 0.95em; 
-        color: #666666; 
+        font-size: 0.95em;
+        color: #666666;
     }}
 
     /* Target the first header/element in the main content area */
@@ -172,7 +172,7 @@ custom_css = f"""
         z-index: 1000; /* Pastikan di atas elemen lain saat scrolling */
         
         /* Hapus margin negatif yang menyebabkan masalah */
-        margin: 0 !important; 
+        margin: 0 !important;
     }}
     .custom-header h1 {{
         margin: 0 !important;
@@ -295,7 +295,7 @@ custom_css = f"""
     }}
 
     /* Text Input & Number Input */
-    .stTextInput > div > div > input, 
+    .stTextInput > div > div > input,
     .stNumberInput > div > div > input,
     .stDateInput > div > div > input,
     .stTimeInput > div > div > input {{
@@ -352,7 +352,7 @@ custom_css = f"""
 
     /* NEW: Styling for the dropdown list (pop-up) itself that appears below the selectbox */
     /* This targets the container that holds the dropdown options. Using role="listbox" is robust. */
-    div[role="listbox"][aria-orientation="vertical"] {{ 
+    div[role="listbox"][aria-orientation="vertical"] {{
         width: 500px !important; /* Set a fixed width for the dropdown list, slightly more than input */
         max-width: 600px !important; /* Batasi lebar maksimum agar tidak terlalu besar */
         min-width: 400px !important; /* Pastikan tidak terlalu sempit */
@@ -427,14 +427,14 @@ custom_css = f"""
     
     /* Overall top padding adjustment for main block (Streamlit's main content wrapper) */
     /* Ini seharusnya tidak perlu lagi karena padding-top sudah di .main .block-container */
-    /* .css-1d3fclg.eggyngi2 {{ 
+    /* .css-1d3fclg.eggyngi2 {{
         padding-top: 1rem !important;
     }} */
 
     /* Ensure specific elements have appropriate top margins after the main header */
     .stApp > div > div:first-child > div:nth-child(3) > div:first-child {{
         /* Mengurangi margin top karena padding sudah diatur pada block-container */
-        margin-top: 0rem !important; 
+        margin-top: 0rem !important;
     }}
 </style>
 """
@@ -454,7 +454,7 @@ st.markdown(custom_css, unsafe_allow_html=True)
 st.markdown(header_html, unsafe_allow_html=True)
 
 # Hapus spasi vertikal tambahan ini karena padding-top di .main .block-container sudah menangani
-# st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True) 
+# st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
 # --- INISIALISASI SESSION STATE ---
 if 'df_original' not in st.session_state:
@@ -534,8 +534,8 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
     for key, val in display_data.items():
         pdf.cell(0, 7, f"{key}: {val}", ln=True)
 
-    # BARIS INI YANG DIUBAH: MENAMBAHKAN .encode('latin-1')
-    return pdf.output(dest='S').encode('latin-1')
+    # BARIS INI YANG DIUBAH: MENAMBAHKAN .encode('utf-8')
+    return pdf.output(dest='S').encode('utf-8')
 
 def preprocess_data(df):
     """
@@ -553,7 +553,7 @@ def preprocess_data(df):
     if missing_cols:
         st.error(f"Kolom-kolom berikut tidak ditemukan dalam data Anda: {', '.join(missing_cols)}. Harap periksa file Excel Anda dan pastikan nama kolom sudah benar.")
         return None, None
-    
+
     # Hapus kolom identitas untuk klasterisasi
     df_clean_for_clustering = df_processed.drop(columns=ID_COLS, errors="ignore")
 
@@ -692,7 +692,7 @@ for option in menu_options:
 
     if st.sidebar.button(display_name, key=button_key):
         st.session_state.current_menu = option
-        st.rerun() 
+        st.rerun()
 
 # --- JavaScript untuk Menandai Halaman Aktif di Sidebar (Inject sekali, setelah semua tombol dirender) ---
 js_highlight_active_button = f"""
@@ -724,7 +724,7 @@ js_highlight_active_button = f"""
     }}
 
     const observer = new MutationObserver((mutationsList, observer) => {{
-        const sidebarChanged = mutationsList.some(mutation => 
+        const sidebarChanged = mutationsList.some(mutation =>
             mutation.target.closest('[data-testid="stSidebar"]')
         );
         if (sidebarChanged) {{
@@ -769,12 +769,12 @@ if st.session_state.current_menu == "Unggah Data":
     uploaded_file = st.file_uploader("Pilih File Excel Dataset", type=["xlsx"], help="Unggah file Excel Anda di sini. Hanya format .xlsx yang didukung.")
     if uploaded_file:
         try:
-            df = pd.read_excel(uploaded_file, 
+            df = pd.read_excel(uploaded_file,
                                 engine='openpyxl')
             st.session_state.df_original = df
             st.success("Data berhasil diunggah! Anda dapat melanjutkan ke langkah praproses.")
             st.subheader("Preview Data yang Diunggah:")
-            st.dataframe(df, use_container_width=True, height=300) 
+            st.dataframe(df, use_container_width=True, height=300)
             st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True) # Spasi setelah dataframe
         except Exception as e:
             st.error(f"Terjadi kesalahan saat membaca file: {e}. Pastikan format file Excel benar dan tidak rusak.")
@@ -827,7 +827,7 @@ elif st.session_state.current_menu == "Klasterisasi Data K-Prototypes":
         
         st.markdown("---")
         
-        k = st.slider("Pilih Jumlah Klaster (K)", 2, 6, value=st.session_state.n_clusters, 
+        k = st.slider("Pilih Jumlah Klaster (K)", 2, 6, value=st.session_state.n_clusters,
                       help="Pilih berapa banyak kelompok siswa yang ingin Anda bentuk.")
         
         if st.button("Jalankan Klasterisasi"):
@@ -852,21 +852,21 @@ elif st.session_state.current_menu == "Klasterisasi Data K-Prototypes":
 
                 st.success(f"Klasterisasi selesai dengan {k} klaster! Hasil pengelompokan siswa telah tersedia.")
                 
-                st.markdown("---") 
+                st.markdown("---")
                 st.subheader("Data Hasil Klasterisasi (Disertai Data Asli):")
                 st.dataframe(df_original_with_cluster_display, use_container_width=True, height=300)
                 
-                st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True) 
+                st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
                 
                 st.subheader("Ringkasan Klaster: Jumlah Siswa per Kelompok")
                 jumlah_per_klaster = df_original_with_cluster_display["Klaster"].value_counts().sort_index().reset_index()
                 jumlah_per_klaster.columns = ["Klaster", "Jumlah Siswa"]
                 st.table(jumlah_per_klaster)
                 
-                st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True) 
+                st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
             
             if st.session_state.df_clustered is not None:
-                st.markdown("---") 
+                st.markdown("---")
                 st.subheader(f"Karakteristik Umum Klaster ({st.session_state.n_clusters} Klaster):")
                 st.write("Berikut adalah deskripsi singkat untuk setiap klaster yang terbentuk:")
                 
@@ -893,7 +893,7 @@ elif st.session_state.current_menu == "Prediksi Klaster Siswa Baru":
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("---") 
+        st.markdown("---")
         with st.form("form_input_siswa_baru", clear_on_submit=False): # Non-clear form for easier re-submission
             st.markdown("### Input Data Siswa Baru")
             st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
@@ -957,8 +957,8 @@ elif st.session_state.current_menu == "Prediksi Klaster Siswa Baru":
                 ax.set_ylim(min(values_for_plot) - 0.2 if values_for_plot else -1, max(values_for_plot) + 0.2 if values_for_plot else 1)
                 
                 for index, value in enumerate(values_for_plot):
-                    ax.text(bars.patches[index].get_x() + bars.patches[index].get_width() / 2, 
-                            bars.patches[index].get_height() + (0.05 if value >= 0 else -0.1), 
+                    ax.text(bars.patches[index].get_x() + bars.patches[index].get_width() / 2,
+                            bars.patches[index].get_height() + (0.05 if value >= 0 else -0.1),
                             f"{value:.2f}", ha='center', fontsize=9, weight='bold')
 
                 ax.set_title("Profil Siswa Baru", fontsize=16, weight='bold')
@@ -986,8 +986,8 @@ elif st.session_state.current_menu == "Visualisasi & Profil Klaster":
         
         st.markdown("---")
         
-        k_visual = st.slider("Jumlah Klaster (K) untuk visualisasi", 2, 6, value=st.session_state.n_clusters, 
-                             help="Geser untuk memilih jumlah klaster yang ingin Anda visualisasikan. Ini akan melatih ulang model sementara untuk tujuan visualisasi.")
+        k_visual = st.slider("Jumlah Klaster (K) untuk visualisasi", 2, 6, value=st.session_state.n_clusters,
+                              help="Geser untuk memilih jumlah klaster yang ingin Anda visualisasikan. Ini akan melatih ulang model sementara untuk tujuan visualisasi.")
         
         # Jalankan klasterisasi ulang hanya untuk tujuan visualisasi jika K berubah
         df_for_visual_clustering, kproto_visual, cat_indices_visual = run_kprototypes_clustering(
@@ -1007,7 +1007,7 @@ elif st.session_state.current_menu == "Visualisasi & Profil Klaster":
                 st.subheader(f"Klaster {i}")
                 cluster_data = df_for_visual_clustering[df_for_visual_clustering["Klaster"] == i]
 
-                col1, col2 = st.columns([1, 2])
+                col1, col2 = st.columns([1, 2]) # Bagi ruang menjadi 1:2
                 with col1:
                     st.markdown("#### Statistik Klaster")
                     st.markdown(f"Jumlah Siswa: {len(cluster_data)}")
@@ -1077,8 +1077,8 @@ elif st.session_state.current_menu == "Lihat Profil Siswa Individual":
         
         # Selectbox untuk memilih nama siswa
         nama_terpilih = st.selectbox(
-            "Pilih Nama Siswa", 
-            df_original_with_cluster["Nama"].unique(), 
+            "Pilih Nama Siswa",
+            df_original_with_cluster["Nama"].unique(),
             index=default_index, # Mengatur indeks default
             key="pilih_nama_siswa_selectbox", # Menambahkan key unik
             help="Pilih siswa yang profilnya ingin Anda lihat."
@@ -1164,7 +1164,7 @@ elif st.session_state.current_menu == "Lihat Profil Siswa Individual":
             # --- BAGIAN: Menampilkan daftar siswa di klaster yang sama ---
             st.subheader(f"Siswa Lain di Klaster {klaster_siswa_terpilih}:")
             siswa_lain_di_klaster = df_original_with_cluster[
-                (df_original_with_cluster['Klaster'] == klaster_siswa_terpilih) & 
+                (df_original_with_cluster['Klaster'] == klaster_siswa_terpilih) &
                 (df_original_with_cluster['Nama'] != nama_terpilih)
             ]
             
@@ -1210,4 +1210,3 @@ elif st.session_state.current_menu == "Lihat Profil Siswa Individual":
                     )
             else:
                 st.warning("Mohon lakukan klasterisasi terlebih dahulu (Menu 'Klasterisasi Data K-Prototypes') untuk menghasilkan data profil PDF.")
-
