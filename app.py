@@ -534,11 +534,8 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
     for key, val in display_data.items():
         pdf.cell(0, 7, f"{key}: {val}", ln=True)
 
-    # --- PERBAIKAN PENTING DI SINI ---
-    # pdf.output(dest='S') mengembalikan bytearray, yang tidak perlu di-encode
-    # Cukup kembalikan objek bytearray-nya
-    return pdf.output(dest='S')
-
+    # BARIS INI YANG DIUBAH: MENAMBAHKAN .encode('latin-1')
+    return pdf.output(dest='S').encode('latin-1')
 
 def preprocess_data(df):
     """
@@ -609,12 +606,15 @@ def generate_cluster_descriptions(df_clustered, n_clusters, numeric_cols, catego
     """
     cluster_characteristics_map = {}
     
+    # Ambil nilai min/max asli untuk normalisasi balik deskripsi
+    df_original_numeric = st.session_state.df_original[NUMERIC_COLS]
+    original_min_vals = df_original_numeric.min()
+    original_max_vals = df_original_numeric.max()
+    original_mean_vals = df_original_numeric.mean()
+    original_std_vals = df_original_numeric.std()
+
     for i in range(n_clusters):
         cluster_data = df_clustered[df_clustered["Klaster"] == i]
-        
-        if cluster_data.empty:
-            cluster_characteristics_map[i] = "Klaster ini kosong."
-            continue
 
         # Rata-rata untuk fitur numerik (setelah normalisasi)
         avg_scaled_values = cluster_data[numeric_cols].mean()
@@ -651,9 +651,9 @@ def generate_cluster_descriptions(df_clustered, n_clusters, numeric_cols, catego
         # Deskripsi ekstrakurikuler
         ekskul_aktif_modes = [col_name for col_name in categorical_cols if mode_values[col_name] == '1']
         if ekskul_aktif_modes:
-            desc += f"Siswa di klaster ini paling banyak mengikuti ekstrakurikuler: {', '.join([c.replace('Ekstrakurikuler ', '') for c in ekskul_aktif_modes])}."
+            desc += f"Siswa di klaster ini aktif dalam ekstrakurikuler: {', '.join([c.replace('Ekstrakurikuler ', '') for c in ekskul_aktif_modes])}."
         else:
-            desc += "Siswa di klaster ini cenderung tidak aktif dalam kegiatan ekstrakurikuler."
+            desc += "Siswa di klaster ini kurang aktif dalam kegiatan ekstrakurikuler."
 
         cluster_characteristics_map[i] = desc
     return cluster_characteristics_map
@@ -744,6 +744,11 @@ else:
 
 
 # --- KONTEN HALAMAN UTAMA BERDASARKAN MENU TERPILIH ---
+
+# Gunakan sebuah div untuk mengatur jarak antara header global dan konten setiap halaman
+# st.markdown("<div id='page-top-spacer' style='margin-top: 30px;'></div>", unsafe_allow_html=True)
+# Spacer ini tidak lagi diperlukan karena padding-top pada .main .block-container sudah menangani
+
 if st.session_state.current_menu == "Unggah Data":
     st.header("Unggah Data Siswa")
     st.markdown("""
@@ -764,7 +769,8 @@ if st.session_state.current_menu == "Unggah Data":
     uploaded_file = st.file_uploader("Pilih File Excel Dataset", type=["xlsx"], help="Unggah file Excel Anda di sini. Hanya format .xlsx yang didukung.")
     if uploaded_file:
         try:
-            df = pd.read_excel(uploaded_file, engine='openpyxl')
+            df = pd.read_excel(uploaded_file, 
+                                engine='openpyxl')
             st.session_state.df_original = df
             st.success("Data berhasil diunggah! Anda dapat melanjutkan ke langkah praproses.")
             st.subheader("Preview Data yang Diunggah:")
@@ -945,10 +951,7 @@ elif st.session_state.current_menu == "Prediksi Klaster Siswa Baru":
                 labels_for_plot = ["Nilai Akademik (Norm)", "Kehadiran (Norm)"] + [col.replace("Ekstrakurikuler ", "Ekskul\n") for col in CATEGORICAL_COLS]
 
                 fig, ax = plt.subplots(figsize=(10, 6))
-                # --- PERBAIKAN: SESUAI SARAN FUTUREWARNING ---
-                # Menggunakan 'hue' untuk x agar warning tidak muncul
-                df_plot = pd.DataFrame({'labels': labels_for_plot, 'values': values_for_plot})
-                bars = sns.barplot(x='labels', y='values', data=df_plot, hue='labels', palette="viridis", ax=ax, legend=False)
+                bars = sns.barplot(x=labels_for_plot, y=values_for_plot, palette="viridis", ax=ax)
                 
                 # Atur batas Y axis agar lebih baik untuk campuran nilai
                 ax.set_ylim(min(values_for_plot) - 0.2 if values_for_plot else -1, max(values_for_plot) + 0.2 if values_for_plot else 1)
@@ -984,7 +987,7 @@ elif st.session_state.current_menu == "Visualisasi & Profil Klaster":
         st.markdown("---")
         
         k_visual = st.slider("Jumlah Klaster (K) untuk visualisasi", 2, 6, value=st.session_state.n_clusters, 
-                              help="Geser untuk memilih jumlah klaster yang ingin Anda visualisasikan. Ini akan melatih ulang model sementara untuk tujuan visualisasi.")
+                             help="Geser untuk memilih jumlah klaster yang ingin Anda visualisasikan. Ini akan melatih ulang model sementara untuk tujuan visualisasi.")
         
         # Jalankan klasterisasi ulang hanya untuk tujuan visualisasi jika K berubah
         df_for_visual_clustering, kproto_visual, cat_indices_visual = run_kprototypes_clustering(
@@ -1004,8 +1007,7 @@ elif st.session_state.current_menu == "Visualisasi & Profil Klaster":
                 st.subheader(f"Klaster {i}")
                 cluster_data = df_for_visual_clustering[df_for_visual_clustering["Klaster"] == i]
 
-                col1, col2 = st.columns([1, 2]) # Bagi ruang menjadi 1:2
-                
+                col1, col2 = st.columns([1, 2])
                 with col1:
                     st.markdown("#### Statistik Klaster")
                     st.markdown(f"Jumlah Siswa: {len(cluster_data)}")
@@ -1033,9 +1035,7 @@ elif st.session_state.current_menu == "Visualisasi & Profil Klaster":
                     labels_for_plot = ["Nilai (Norm)", "Kehadiran (Norm)"] + [col.replace("Ekstrakurikuler ", "Ekskul\n") for col in CATEGORICAL_COLS]
 
                     fig, ax = plt.subplots(figsize=(10, 6))
-                    # --- PERBAIKAN: SESUAI SARAN FUTUREWARNING ---
-                    df_plot = pd.DataFrame({'labels': labels_for_plot, 'values': values_for_plot})
-                    bars = sns.barplot(x='labels', y='values', data=df_plot, hue='labels', palette="cubehelix", ax=ax, legend=False)
+                    bars = sns.barplot(x=labels_for_plot, y=values_for_plot, palette="cubehelix", ax=ax)
 
                     ax.set_ylim(min(values_for_plot) - 0.2 if values_for_plot else -1, max(values_for_plot) + 0.2 if values_for_plot else 1)
 
@@ -1144,9 +1144,7 @@ elif st.session_state.current_menu == "Lihat Profil Siswa Individual":
                 values_siswa_plot = values_siswa_plot_numeric + values_siswa_plot_ekskul
 
                 fig, ax = plt.subplots(figsize=(10, 6))
-                # --- PERBAIKAN: Menggunakan hue agar tidak ada FutureWarning ---
-                df_plot = pd.DataFrame({'labels': labels_siswa_plot, 'values': values_siswa_plot})
-                bars = sns.barplot(x='labels', y='values', data=df_plot, hue='labels', palette="magma", ax=ax, legend=False)
+                bars = sns.barplot(x=labels_siswa_plot, y=values_siswa_plot, palette="magma", ax=ax)
 
                 # Atur y-limit secara dinamis, pastikan mencakup nilai 0 dan 100
                 max_plot_val = max(values_siswa_plot) if values_siswa_plot else 100
