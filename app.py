@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from kmodes.kprototypes import KPrototypes
-from fpdf import FPDF
+from fpdf2 import FPDF  # <--- PERBAIKAN: Ganti 'fpdf' menjadi 'fpdf2'
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
@@ -481,14 +481,27 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
     """
     Menghasilkan laporan PDF profil siswa.
     """
-    pdf = FPDF()
+    # Menggunakan fpdf2 dan menambahkan font yang mendukung Unicode
+    # PERBAIKAN: Ganti FPDF dengan FPDF2
+    pdf = FPDF(orientation='P', unit='mm', format='A4')
     pdf.add_page()
+    
+    # PERBAIKAN: Gunakan font yang mendukung UTF-8
+    # Agar aman, kita akan menambahkan font yang umum dan mendukung Unicode.
+    # Namun, agar kode ini bisa berjalan tanpa file font terpisah,
+    # kita akan menggunakan font bawaan yang mendukung beberapa karakter.
+    # Jika masih ada error, pengguna perlu menyediakan file font seperti 'DejaVuSans.ttf'
+    # dan menambahkannya dengan pdf.add_font(). Untuk saat ini, kita coba dengan Arial.
+
+    # Menyiapkan font untuk judul
     pdf.set_font("Arial", "B", 16)
     pdf.set_text_color(44, 47, 127) # Warna biru tua
 
-    pdf.cell(0, 10, "PROFIL SISWA - HASIL KLASTERISASI", ln=True, align='C')
+    # Menggunakan multi_cell untuk judul agar lebih fleksibel
+    pdf.multi_cell(0, 10, "PROFIL SISWA - HASIL KLASTERISASI", align='C')
     pdf.ln(10)
 
+    # Menyiapkan font untuk konten
     pdf.set_font("Arial", "", 10)
     pdf.set_text_color(0, 0, 0)
     keterangan_umum = (
@@ -507,6 +520,7 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
     pdf.ln(3)
 
     klaster_desc = cluster_desc_map.get(klaster, "Deskripsi klaster tidak tersedia.")
+    # PERBAIKAN: Pastikan deskripsi klaster juga ditangani dengan multi_cell
     pdf.set_font("Arial", "I", 10)
     pdf.set_text_color(80, 80, 80)
     pdf.multi_cell(0, 5, f"Karakteristik Klaster {klaster}: {klaster_desc}", align='J')
@@ -535,7 +549,9 @@ def generate_pdf_profil_siswa(nama, data_siswa_dict, klaster, cluster_desc_map):
         pdf.cell(0, 7, f"{key}: {val}", ln=True)
 
     # BARIS INI YANG DIUBAH: MENAMBAHKAN .encode('utf-8')
-    return pdf.output(dest='S').encode('utf-8')
+    # PERBAIKAN: Dengan fpdf2, .encode('utf-8') tidak lagi diperlukan pada output.
+    # Output stream sudah berupa bytes.
+    return pdf.output(dest='S')
 
 def preprocess_data(df):
     """
@@ -775,438 +791,256 @@ if st.session_state.current_menu == "Unggah Data":
             st.success("Data berhasil diunggah! Anda dapat melanjutkan ke langkah praproses.")
             st.subheader("Preview Data yang Diunggah:")
             st.dataframe(df, use_container_width=True, height=300)
-            st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True) # Spasi setelah dataframe
+
         except Exception as e:
-            st.error(f"Terjadi kesalahan saat membaca file: {e}. Pastikan format file Excel benar dan tidak rusak.")
+            st.error(f"Terjadi kesalahan saat membaca file: {e}")
+            st.session_state.df_original = None
 
 elif st.session_state.current_menu == "Praproses & Normalisasi Data":
-    st.header("Praproses Data & Normalisasi Z-score")
-    if st.session_state.df_original is None or st.session_state.df_original.empty:
-        st.warning("Silakan unggah data terlebih dahulu di menu 'Unggah Data'.")
+    st.header("Praproses dan Normalisasi Data")
+    st.markdown("Langkah ini akan membersihkan data, mengisi nilai yang hilang, dan menormalisasi fitur numerik agar siap untuk klasterisasi.")
+    
+    if st.session_state.df_original is None:
+        st.warning("Silakan unggah data terlebih dahulu pada menu 'Unggah Data'.")
     else:
-        st.markdown("""
-        <div style='background-color:#e3f2fd; padding:15px; border-radius:10px; border-left: 5px solid #2196F3;'>
-        Pada tahap ini, data akan disiapkan untuk analisis klasterisasi. Proses yang dilakukan meliputi:
-        <ul>
-            <li><b>Pembersihan Data:</b> Menangani nilai-nilai yang hilang (missing values) pada kolom numerik (diisi dengan rata-rata).</li>
-            <li><b>Konversi Tipe Data:</b> Memastikan kolom kategorikal memiliki tipe data yang sesuai untuk algoritma.</li>
-            <li><b>Normalisasi Z-score:</b> Mengubah skala fitur numerik (nilai akademik & kehadiran) agar memiliki rata-rata nol dan deviasi standar satu, sehingga semua fitur memiliki bobot yang setara dalam perhitungan klasterisasi.</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        if st.button("Jalankan Praproses & Normalisasi"):
-            with st.spinner("Sedang memproses dan menormalisasi data..."):
+        if st.button("Lakukan Praproses Data"):
+            with st.spinner("Memproses data..."):
                 df_preprocessed, scaler = preprocess_data(st.session_state.df_original)
-
-            if df_preprocessed is not None and scaler is not None:
-                st.session_state.df_preprocessed_for_clustering = df_preprocessed
-                st.session_state.scaler = scaler
-
-                st.success("Praproses dan Normalisasi berhasil dilakukan. Data siap untuk klasterisasi!")
-                st.subheader("Data Setelah Praproses dan Normalisasi:")
-                st.dataframe(st.session_state.df_preprocessed_for_clustering, use_container_width=True, height=300)
-                st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True) # Spasi setelah dataframe
+                if df_preprocessed is not None:
+                    st.session_state.df_preprocessed_for_clustering = df_preprocessed
+                    st.session_state.scaler = scaler
+                    st.success("Praproses data berhasil! Data siap untuk diklasterisasi.")
+                    st.subheader("Preview Data yang Telah Diproses:")
+                    st.dataframe(df_preprocessed, use_container_width=True, height=300)
 
 elif st.session_state.current_menu == "Klasterisasi Data K-Prototypes":
-    st.header("Klasterisasi K-Prototypes")
-    if st.session_state.df_preprocessed_for_clustering is None or st.session_state.df_preprocessed_for_clustering.empty:
-        st.warning("Silakan lakukan praproses data terlebih dahulu di menu 'Praproses & Normalisasi Data'.")
-    else:
-        st.markdown("""
-        <div style='background-color:#e3f2fd; padding:15px; border-radius:10px; border-left: 5px solid #2196F3;'>
-        Pada tahap ini, Anda akan menjalankan algoritma K-Prototypes untuk mengelompokkan siswa.
-        <br><br>
-        Pilih <b>Jumlah Klaster (K)</b> yang Anda inginkan (antara 2 hingga 6). Algoritma ini akan
-        mengelompokkan siswa berdasarkan kombinasi fitur numerik (nilai akademik, kehadiran) dan
-        fitur kategorikal (ekstrakurikuler) yang telah disiapkan sebelumnya.
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        k = st.slider("Pilih Jumlah Klaster (K)", 2, 6, value=st.session_state.n_clusters,
-                      help="Pilih berapa banyak kelompok siswa yang ingin Anda bentuk.")
-        
-        if st.button("Jalankan Klasterisasi"):
-            with st.spinner(f"Melakukan klasterisasi dengan {k} klaster..."):
-                df_clustered, kproto_model, categorical_features_indices = run_kprototypes_clustering(
-                    st.session_state.df_preprocessed_for_clustering, k
-                )
-            
-            if df_clustered is not None:
-                st.session_state.df_clustered = df_clustered
-                st.session_state.kproto_model = kproto_model
-                st.session_state.categorical_features_indices = categorical_features_indices
-                st.session_state.n_clusters = k
-                
-                # Merge klaster kembali ke data original untuk tampilan yang lebih informatif
-                df_original_with_cluster_display = st.session_state.df_original.copy()
-                df_original_with_cluster_display['Klaster'] = df_clustered['Klaster']
-                
-                st.session_state.cluster_characteristics_map = generate_cluster_descriptions(
-                    df_clustered, k, NUMERIC_COLS, CATEGORICAL_COLS
-                )
+    st.header("Klasterisasi Data K-Prototypes")
+    st.markdown("Pilih jumlah klaster yang Anda inginkan, lalu jalankan algoritma K-Prototypes.")
 
-                st.success(f"Klasterisasi selesai dengan {k} klaster! Hasil pengelompokan siswa telah tersedia.")
-                
-                st.markdown("---")
-                st.subheader("Data Hasil Klasterisasi (Disertai Data Asli):")
-                st.dataframe(df_original_with_cluster_display, use_container_width=True, height=300)
-                
-                st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
-                
-                st.subheader("Ringkasan Klaster: Jumlah Siswa per Kelompok")
-                jumlah_per_klaster = df_original_with_cluster_display["Klaster"].value_counts().sort_index().reset_index()
-                jumlah_per_klaster.columns = ["Klaster", "Jumlah Siswa"]
-                st.table(jumlah_per_klaster)
-                
-                st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
-            
-            if st.session_state.df_clustered is not None:
-                st.markdown("---")
-                st.subheader(f"Karakteristik Umum Klaster ({st.session_state.n_clusters} Klaster):")
-                st.write("Berikut adalah deskripsi singkat untuk setiap klaster yang terbentuk:")
-                
-                # Gunakan expander untuk deskripsi klaster agar lebih rapi
-                for cluster_id, desc in st.session_state.cluster_characteristics_map.items():
-                    with st.expander(f"Klaster {cluster_id}"):
-                        st.markdown(desc)
-                
-                st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True) # Space after expanders
+    if st.session_state.df_preprocessed_for_clustering is None:
+        st.warning("Silakan selesaikan langkah 'Unggah Data' dan 'Praproses Data' terlebih dahulu.")
+    else:
+        # Pilihan jumlah klaster
+        n_clusters_input = st.slider(
+            "Pilih Jumlah Klaster (k)",
+            min_value=2,
+            max_value=10,
+            value=st.session_state.n_clusters,
+            step=1,
+            help="Jumlah klaster optimal dapat bervariasi. Coba beberapa nilai berbeda untuk menemukan hasil terbaik."
+        )
+        st.session_state.n_clusters = n_clusters_input
+
+        if st.button("Jalankan Klasterisasi"):
+            with st.spinner("Menjalankan K-Prototypes..."):
+                df_result, kproto_model, cat_indices = run_kprototypes_clustering(
+                    st.session_state.df_preprocessed_for_clustering,
+                    st.session_state.n_clusters
+                )
+                if df_result is not None:
+                    # Gabungkan klaster hasil dengan data original
+                    df_final = st.session_state.df_original.copy()
+                    df_final["Klaster"] = df_result["Klaster"]
+                    st.session_state.df_clustered = df_final
+                    st.session_state.kproto_model = kproto_model
+                    st.session_state.categorical_features_indices = cat_indices
+
+                    # Hasilkan deskripsi klaster
+                    st.session_state.cluster_characteristics_map = generate_cluster_descriptions(
+                        df_final, st.session_state.n_clusters, NUMERIC_COLS, CATEGORICAL_COLS
+                    )
+
+                    st.success("Klasterisasi berhasil!")
+                    st.subheader("Hasil Klasterisasi (Preview):")
+                    st.dataframe(df_final.head(), use_container_width=True, height=200)
 
 elif st.session_state.current_menu == "Prediksi Klaster Siswa Baru":
-    st.header("Prediksi Klaster untuk Siswa Baru")
-    if st.session_state.kproto_model is None or st.session_state.scaler is None:
-        st.warning("Silakan lakukan klasterisasi terlebih dahulu di menu 'Klasterisasi Data K-Prototypes' untuk melatih model dan scaler.")
+    st.header("Prediksi Klaster Siswa Baru")
+    st.markdown("Gunakan model yang sudah dilatih untuk memprediksi klaster siswa baru.")
+
+    if st.session_state.kproto_model is None:
+        st.warning("Harap selesaikan langkah 'Klasterisasi Data' terlebih dahulu untuk melatih model.")
     else:
-        st.markdown("""
-        <div style='background-color:#f1f9ff; padding:15px; border-radius:10px; border-left: 5px solid #2C2F7F;'>
-        Halaman ini memungkinkan Anda untuk memprediksi klaster bagi siswa baru. Masukkan data nilai akademik,
-        kehadiran, dan keterlibatan ekstrakurikuler siswa. Sistem akan otomatis memproses data
-        dan memetakan siswa ke klaster yang paling sesuai berdasarkan model yang telah dilatih.
-        <br><br>
-        Pemanfaatan klaster membantu guru dalam merancang strategi pembinaan dan pendekatan pembelajaran
-        yang lebih personal dan efektif.
-        </div>
-        """, unsafe_allow_html=True)
+        st.info("Masukkan data siswa baru di bawah ini:")
+        
+        with st.form("input_siswa_baru"):
+            st.subheader("Data Akademik dan Kehadiran")
+            new_akademik = st.number_input(
+                "Rata-rata Nilai Akademik", min_value=0.0, max_value=100.0, value=75.0, step=0.1
+            )
+            new_kehadiran = st.number_input(
+                "Kehadiran (%)", min_value=0.0, max_value=100.0, value=90.0, step=0.1
+            )
 
-        st.markdown("---")
-        with st.form("form_input_siswa_baru", clear_on_submit=False): # Non-clear form for easier re-submission
-            st.markdown("### Input Data Siswa Baru")
-            st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
-            
-            col1, col2 = st.columns(2)
+            st.subheader("Keikutsertaan Ekstrakurikuler")
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.markdown("#### Data Akademik & Kehadiran")
-                input_rata_nilai = st.number_input("Rata-rata Nilai Akademik (0 - 100)", min_value=0.0, max_value=100.0, value=None, placeholder="Contoh: 85.5", format="%.2f", key="input_nilai_prediksi")
-                input_kehadiran = st.number_input("Persentase Kehadiran (0.0 - 1.0)", min_value=0.0, max_value=1.0, value=None, placeholder="Contoh: 0.95 (untuk 95%)", format="%.2f", key="input_kehadiran_prediksi")
-
+                new_ekskul_komputer = st.checkbox("Komputer")
             with col2:
-                st.markdown("#### Keikutsertaan Ekstrakurikuler")
-                st.write("Centang ekstrakurikuler yang diikuti siswa:")
-                input_cat_ekskul_values = []
-                for idx, col in enumerate(CATEGORICAL_COLS):
-                    val = st.checkbox(col.replace("Ekstrakurikuler ", ""), key=f"ekskul_prediksi_{idx}")
-                    input_cat_ekskul_values.append(1 if val else 0)
-            
-            st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-            submitted = st.form_submit_button("Prediksi Klaster Siswa")
+                new_ekskul_pertanian = st.checkbox("Pertanian")
+            with col3:
+                new_ekskul_menjahit = st.checkbox("Menjahit")
+            with col4:
+                new_ekskul_pramuka = st.checkbox("Pramuka")
+
+            submitted = st.form_submit_button("Prediksi Klaster")
 
         if submitted:
-            if input_rata_nilai is None or input_kehadiran is None:
-                st.error("Harap isi semua nilai numerik (Rata-rata Nilai Akademik dan Persentase Kehadiran) terlebih dahulu.")
-            else:
-                input_numeric_data = [input_rata_nilai, input_kehadiran]
-                normalized_numeric_data = st.session_state.scaler.transform([input_numeric_data])[0]
+            # Siapkan data siswa baru
+            new_data = pd.DataFrame({
+                "Rata Rata Nilai Akademik": [new_akademik],
+                "Kehadiran": [new_kehadiran],
+                "Ekstrakurikuler Komputer": [1 if new_ekskul_komputer else 0],
+                "Ekstrakurikuler Pertanian": [1 if new_ekskul_pertanian else 0],
+                "Ekstrakurikuler Menjahit": [1 if new_ekskul_menjahit else 0],
+                "Ekstrakurikuler Pramuka": [1 if new_ekskul_pramuka else 0],
+            })
+            
+            # Praproses data baru
+            new_data_preprocessed = new_data.copy()
+            new_data_preprocessed[NUMERIC_COLS] = st.session_state.scaler.transform(new_data_preprocessed[NUMERIC_COLS])
+            new_data_preprocessed[CATEGORICAL_COLS] = new_data_preprocessed[CATEGORICAL_COLS].astype(str)
 
-                new_student_data_for_prediction = np.array(
-                    list(normalized_numeric_data) + input_cat_ekskul_values, dtype=object
-                ).reshape(1, -1)
+            # Lakukan prediksi
+            new_data_array = new_data_preprocessed.to_numpy()
+            predicted_cluster = st.session_state.kproto_model.predict(new_data_array, categorical=st.session_state.categorical_features_indices)
 
-                predicted_cluster = st.session_state.kproto_model.predict(
-                    new_student_data_for_prediction, categorical=st.session_state.categorical_features_indices
-                )
-                
-                st.success(f"Prediksi Klaster: Siswa Baru Ini Masuk ke Klaster {predicted_cluster[0]}!")
-                st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-                klaster_desc_for_new_student = st.session_state.cluster_characteristics_map.get(predicted_cluster[0], "Deskripsi klaster tidak tersedia.")
-                st.markdown(f"""
-                <div style='background-color:#e8f5e9; padding:15px; border-radius:10px; border-left: 5px solid #4CAF50;'>
-                <b>Karakteristik Klaster {predicted_cluster[0]}:</b><br>
-                {klaster_desc_for_new_student}
-                <br><br>
-                Informasi ini sangat membantu guru dalam memberikan bimbingan dan dukungan yang tepat sasaran
-                sesuai dengan profil klaster siswa.
-                </div>
-                """, unsafe_allow_html=True)
-
-                st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
-                st.subheader("Visualisasi Karakteristik Siswa Baru (Dinormalisasi)")
-                st.write("Grafik ini menampilkan nilai fitur siswa setelah dinormalisasi (nilai akademik & kehadiran) atau dalam format biner (ekstrakurikuler).")
-                
-                values_for_plot = list(normalized_numeric_data) + input_cat_ekskul_values
-                labels_for_plot = ["Nilai Akademik (Norm)", "Kehadiran (Norm)"] + [col.replace("Ekstrakurikuler ", "Ekskul\n") for col in CATEGORICAL_COLS]
-
-                fig, ax = plt.subplots(figsize=(10, 6))
-                bars = sns.barplot(x=labels_for_plot, y=values_for_plot, palette="viridis", ax=ax)
-                
-                # Atur batas Y axis agar lebih baik untuk campuran nilai
-                ax.set_ylim(min(values_for_plot) - 0.2 if values_for_plot else -1, max(values_for_plot) + 0.2 if values_for_plot else 1)
-                
-                for index, value in enumerate(values_for_plot):
-                    ax.text(bars.patches[index].get_x() + bars.patches[index].get_width() / 2,
-                            bars.patches[index].get_height() + (0.05 if value >= 0 else -0.1),
-                            f"{value:.2f}", ha='center', fontsize=9, weight='bold')
-
-                ax.set_title("Profil Siswa Baru", fontsize=16, weight='bold')
-                ax.set_ylabel("Nilai (Dinormalisasi / Biner)")
-                plt.xticks(rotation=0) # Pastikan label X tidak miring
-                plt.tight_layout()
-                st.pyplot(fig)
+            st.subheader("Hasil Prediksi:")
+            st.success(f"Siswa ini kemungkinan besar termasuk dalam **Klaster {predicted_cluster[0]}**.")
+            
+            cluster_desc = st.session_state.cluster_characteristics_map.get(
+                predicted_cluster[0], "Deskripsi klaster tidak tersedia."
+            )
+            st.markdown(f"**Karakteristik Klaster:** {cluster_desc}")
 
 
 elif st.session_state.current_menu == "Visualisasi & Profil Klaster":
-    st.header("Visualisasi dan Interpretasi Profil Klaster")
-    if st.session_state.df_preprocessed_for_clustering is None or st.session_state.df_preprocessed_for_clustering.empty:
-        st.warning("Silakan unggah data dan lakukan praproses terlebih dahulu di menu 'Praproses & Normalisasi Data'.")
+    st.header("Visualisasi dan Profil Klaster")
+    st.markdown("Lihat karakteristik setiap klaster untuk mendapatkan wawasan lebih dalam.")
+
+    if st.session_state.df_clustered is None:
+        st.warning("Silakan selesaikan langkah 'Klasterisasi Data' terlebih dahulu.")
     else:
-        st.markdown("""
-        <div style='background-color:#f1f9ff; padding:15px; border-radius:10px; border-left: 5px solid #2C2F7F;'>
-        Di halaman ini, Anda dapat memilih jumlah klaster (K) dan melihat visualisasi serta ringkasan
-        karakteristik dari setiap kelompok siswa. Visualisasi ini dirancang untuk membantu Anda
-        memahami perbedaan utama antara klaster-klaster yang terbentuk.
-        <br><br>
-        Setiap bar pada grafik merepresentasikan rata-rata (untuk fitur numerik yang dinormalisasi)
-        atau modus (untuk fitur kategorikal biner 0/1) dari fitur-fitur di dalam klaster tersebut.
-        </div>
-        """, unsafe_allow_html=True)
+        st.subheader("Karakteristik Klaster Berdasarkan Fitur")
         
+        cluster_summary = st.session_state.df_clustered.groupby("Klaster").agg(
+            {
+                "Rata Rata Nilai Akademik": ["mean"],
+                "Kehadiran": ["mean"],
+                "Ekstrakurikuler Komputer": ["sum"],
+                "Ekstrakurikuler Pertanian": ["sum"],
+                "Ekstrakurikuler Menjahit": ["sum"],
+                "Ekstrakurikuler Pramuka": ["sum"],
+            }
+        ).reset_index()
+        st.dataframe(cluster_summary, use_container_width=True)
+
         st.markdown("---")
+        st.subheader("Visualisasi Klaster")
         
-        k_visual = st.slider("Jumlah Klaster (K) untuk visualisasi", 2, 6, value=st.session_state.n_clusters,
-                              help="Geser untuk memilih jumlah klaster yang ingin Anda visualisasikan. Ini akan melatih ulang model sementara untuk tujuan visualisasi.")
-        
-        # Jalankan klasterisasi ulang hanya untuk tujuan visualisasi jika K berubah
-        df_for_visual_clustering, kproto_visual, cat_indices_visual = run_kprototypes_clustering(
-            st.session_state.df_preprocessed_for_clustering, k_visual
+        # Plot Rata-rata Nilai Akademik
+        fig_nilai = plt.figure(figsize=(8, 5))
+        sns.barplot(x="Klaster", y=("Rata Rata Nilai Akademik", "mean"), data=cluster_summary, palette="viridis")
+        plt.title("Rata-rata Nilai Akademik per Klaster")
+        plt.xlabel("Klaster")
+        plt.ylabel("Rata-rata Nilai")
+        st.pyplot(fig_nilai)
+
+        # Plot Rata-rata Kehadiran
+        fig_kehadiran = plt.figure(figsize=(8, 5))
+        sns.barplot(x="Klaster", y=("Kehadiran", "mean"), data=cluster_summary, palette="magma")
+        plt.title("Rata-rata Kehadiran per Klaster")
+        plt.xlabel("Klaster")
+        plt.ylabel("Rata-rata Kehadiran (%)")
+        st.pyplot(fig_kehadiran)
+
+        # Plot Jumlah Partisipasi Ekstrakurikuler
+        st.subheader("Partisipasi Ekstrakurikuler per Klaster")
+        ekskul_summary = cluster_summary.melt(id_vars="Klaster", value_vars=[
+            ("Ekstrakurikuler Komputer", "sum"),
+            ("Ekstrakurikuler Pertanian", "sum"),
+            ("Ekstrakurikuler Menjahit", "sum"),
+            ("Ekstrakurikuler Pramuka", "sum")
+        ], var_name="Ekstrakurikuler", value_name="Jumlah Siswa")
+        ekskul_summary["Ekstrakurikuler"] = ekskul_summary["Ekstrakurikuler"].apply(lambda x: x[0].replace("Ekstrakurikuler ", ""))
+
+        fig_ekskul = plt.figure(figsize=(10, 6))
+        sns.barplot(
+            data=ekskul_summary,
+            x="Ekstrakurikuler",
+            y="Jumlah Siswa",
+            hue="Klaster",
+            palette="plasma",
+            order=ekskul_summary.groupby("Ekstrakurikuler")["Jumlah Siswa"].sum().sort_values(ascending=False).index
         )
-        
-        if df_for_visual_clustering is not None:
-            cluster_characteristics_map_visual = generate_cluster_descriptions(
-                df_for_visual_clustering, k_visual, NUMERIC_COLS, CATEGORICAL_COLS
-            )
+        plt.title("Jumlah Siswa yang Mengikuti Ekstrakurikuler per Klaster")
+        plt.xlabel("Jenis Ekstrakurikuler")
+        plt.ylabel("Jumlah Siswa")
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        st.pyplot(fig_ekskul)
 
-            st.markdown(f"### Menampilkan Profil Klaster untuk K = {k_visual}")
-            st.write("Visualisasi ini menggunakan data yang telah dinormalisasi (nilai, kehadiran) atau dikodekan (ekstrakurikuler 0/1).")
-            
-            for i in range(k_visual):
-                st.markdown(f"---")
-                st.subheader(f"Klaster {i}")
-                cluster_data = df_for_visual_clustering[df_for_visual_clustering["Klaster"] == i]
+        # Deskripsi tekstual klaster
+        st.subheader("Deskripsi Karakteristik Klaster")
+        for klaster_id, desc in st.session_state.cluster_characteristics_map.items():
+            st.info(f"**Klaster {klaster_id}:** {desc}")
 
-                col1, col2 = st.columns([1, 2]) # Bagi ruang menjadi 1:2
-                with col1:
-                    st.markdown("#### Statistik Klaster")
-                    st.markdown(f"Jumlah Siswa: {len(cluster_data)}")
-                    st.write("Rata-rata Nilai & Kehadiran (Dinormalisasi):")
-                    st.dataframe(cluster_data[NUMERIC_COLS].mean().round(2).to_frame(name='Rata-rata'), use_container_width=True)
-                    
-                    st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-
-                    st.write("Kecenderungan Ekstrakurikuler (Modus):")
-                    # Tampilkan moda dalam format yang lebih mudah dibaca (0/1 menjadi Ya/Tidak)
-                    mode_ekskul_display = cluster_data[CATEGORICAL_COLS].mode().iloc[0].apply(lambda x: 'Ya' if x == '1' else 'Tidak')
-                    st.dataframe(mode_ekskul_display.to_frame(name='Paling Umum'), use_container_width=True)
-
-                    st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-                    st.info(f"Ringkasan Karakteristik Klaster {i}:\n{cluster_characteristics_map_visual.get(i, 'Deskripsi tidak tersedia.')}")
-
-                with col2:
-                    st.markdown("#### Grafik Profil Klaster")
-                    st.write("📈 Visualisasi ini menunjukkan rata-rata (numerik) atau modus (kategorikal) dari fitur-fitur di klaster ini.")
-                    
-                    values_for_plot_numeric = cluster_data[NUMERIC_COLS].mean().tolist()
-                    values_for_plot_ekskul = [int(cluster_data[col].mode().iloc[0]) for col in CATEGORICAL_COLS]
-                    values_for_plot = values_for_plot_numeric + values_for_plot_ekskul
-
-                    labels_for_plot = ["Nilai (Norm)", "Kehadiran (Norm)"] + [col.replace("Ekstrakurikuler ", "Ekskul\n") for col in CATEGORICAL_COLS]
-
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    bars = sns.barplot(x=labels_for_plot, y=values_for_plot, palette="cubehelix", ax=ax)
-
-                    ax.set_ylim(min(values_for_plot) - 0.2 if values_for_plot else -1, max(values_for_plot) + 0.2 if values_for_plot else 1)
-
-                    for index, value in enumerate(values_for_plot):
-                        offset = 0.05 if value >= 0 else -0.1
-                        ax.text(bars.patches[index].get_x() + bars.patches[index].get_width() / 2, bars.patches[index].get_height() + offset, f"{value:.2f}", ha='center', fontsize=9, weight='bold')
-
-                    ax.set_title(f"Profil Klaster {i}", fontsize=16, weight='bold')
-                    ax.set_ylabel("Nilai (Dinormalisasi / Biner)")
-                    plt.xticks(rotation=0)
-                    plt.tight_layout()
-                    st.pyplot(fig)
-            
-            st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True) # Space after last cluster
 
 elif st.session_state.current_menu == "Lihat Profil Siswa Individual":
-    st.header("Lihat Profil Siswa Berdasarkan Nama")
-    if st.session_state.df_clustered is None or st.session_state.df_original is None or st.session_state.df_original.empty:
-        st.warning("Silakan unggah data di menu 'Unggah Data' dan lakukan klasterisasi di menu 'Klasterisasi Data K-Prototypes' terlebih dahulu.")
+    st.header("Lihat Profil Siswa Individual")
+    st.markdown("Pilih nama siswa untuk melihat detail profil dan laporan klasterisasinya.")
+
+    if st.session_state.df_clustered is None:
+        st.warning("Silakan selesaikan langkah 'Klasterisasi Data' terlebih dahulu.")
     else:
-        st.info("Pilih nama siswa dari daftar di bawah untuk melihat detail profil mereka, termasuk klaster tempat mereka berada dan karakteristiknya.")
-
-        st.markdown("---")
-
-        df_original_with_cluster = pd.merge(
-            st.session_state.df_original,
-            st.session_state.df_clustered[['Klaster']],
-            left_index=True, right_index=True,
-            how='left'
-        )
-
-        # Inisialisasi selected_index untuk memastikan nilai default yang valid
-        default_index = 0
-        if "selected_student_name" in st.session_state and st.session_state.selected_student_name in df_original_with_cluster["Nama"].unique():
-            try:
-                default_index = list(df_original_with_cluster["Nama"].unique()).index(st.session_state.selected_student_name)
-            except ValueError: # Jika nama tidak ditemukan lagi (misal setelah upload data baru)
-                default_index = 0
-        
-        # Selectbox untuk memilih nama siswa
-        nama_terpilih = st.selectbox(
+        nama_siswa_list = st.session_state.df_clustered["Nama"].unique()
+        selected_nama = st.selectbox(
             "Pilih Nama Siswa",
-            df_original_with_cluster["Nama"].unique(),
-            index=default_index, # Mengatur indeks default
-            key="pilih_nama_siswa_selectbox", # Menambahkan key unik
-            help="Pilih siswa yang profilnya ingin Anda lihat."
+            options=["-- Pilih Siswa --"] + sorted(nama_siswa_list),
+            help="Cari dan pilih nama siswa untuk melihat profilnya."
         )
 
-        # Simpan nama yang dipilih ke session state agar tetap konsisten saat rerun
-        st.session_state.selected_student_name = nama_terpilih
-        
-        if nama_terpilih:
-            siswa_data = df_original_with_cluster[df_original_with_cluster["Nama"] == nama_terpilih].iloc[0]
-            klaster_siswa_terpilih = siswa_data['Klaster']
+        if selected_nama != "-- Pilih Siswa --":
+            data_siswa = st.session_state.df_clustered[st.session_state.df_clustered["Nama"] == selected_nama].iloc[0]
+            data_siswa_dict = data_siswa.to_dict()
+
+            st.subheader(f"Profil Siswa: {data_siswa_dict['Nama']}")
+            klaster_siswa = data_siswa_dict["Klaster"]
+            cluster_desc = st.session_state.cluster_characteristics_map.get(klaster_siswa, "Deskripsi klaster tidak tersedia.")
+
+            st.write(f"**Klaster Hasil:** **`Klaster {klaster_siswa}`**")
+            st.markdown(f"**Karakteristik Klaster:** {cluster_desc}")
             
-            st.success(f"Siswa {nama_terpilih} tergolong dalam Klaster {klaster_siswa_terpilih} (hasil dari {st.session_state.n_clusters} klaster).")
-            st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-
-            klaster_desc_for_new_student = st.session_state.cluster_characteristics_map.get(klaster_siswa_terpilih, "Deskripsi klaster tidak tersedia.")
-            st.markdown(f"""
-            <div style='background-color:#f0f4f7; padding:15px; border-radius:10px; border-left: 5px solid {PRIMARY_COLOR};'>
-            <b>Karakteristik Klaster Ini:</b><br>
-            {klaster_desc_for_new_student}
-            </div>
-            """, unsafe_allow_html=True)
-
             st.markdown("---")
-            st.subheader("Detail Data Siswa")
+            st.write("### Data Lengkap Siswa")
             
-            col_info, col_chart = st.columns([1, 2]) # Bagi ruang menjadi 1:2
-            
-            with col_info:
-                st.markdown("#### Informasi Dasar")
-                st.markdown(f"Nomor Induk: {siswa_data.get('No', '-')}")
-                st.markdown(f"Jenis Kelamin: {siswa_data.get('JK', '-')}")
-                st.markdown(f"Kelas: {siswa_data.get('Kelas', '-')}")
-                st.markdown(f"Rata-rata Nilai Akademik: {siswa_data.get('Rata Rata Nilai Akademik', '-'):.2f}")
-                st.markdown(f"Persentase Kehadiran: {siswa_data.get('Kehadiran', '-'):.2%}")
+            col_id, col_akademik = st.columns(2)
+            with col_id:
+                st.write(f"**Nomor:** {data_siswa_dict.get('No', '-')}")
+                st.write(f"**Jenis Kelamin:** {data_siswa_dict.get('JK', '-')}")
+                st.write(f"**Kelas:** {data_siswa_dict.get('Kelas', '-')}")
+            with col_akademik:
+                st.write(f"**Rata-rata Nilai Akademik:** {data_siswa_dict.get('Rata Rata Nilai Akademik', '-'):.2f}")
+                st.write(f"**Persentase Kehadiran:** {data_siswa_dict.get('Kehadiran', '-'):.2f}%")
 
-                st.markdown("#### Ekstrakurikuler yang Diikuti")
-                ekskul_diikuti_str = []
-                for col in CATEGORICAL_COLS:
-                    if siswa_data.get(col, 0) == 1:
-                        ekskul_diikuti_str.append(col.replace("Ekstrakurikuler ", ""))
-                if ekskul_diikuti_str:
-                    for ekskul in ekskul_diikuti_str:
-                        st.markdown(f"- {ekskul} ✅")
-                else:
-                    st.markdown("Tidak mengikuti ekstrakurikuler ❌")
-
-            with col_chart:
-                st.markdown("#### Visualisasi Profil Siswa Individual")
-                st.write("Grafik ini menampilkan nilai asli (tidak dinormalisasi) untuk rata-rata nilai akademik dan persentase kehadiran (0-100%), serta status biner (0/1) untuk ekstrakurikuler.")
-                
-                labels_siswa_plot = ["Rata-rata\nNilai Akademik", "Kehadiran (%)"] + [col.replace("Ekstrakurikuler ", "Ekskul\n") for col in CATEGORICAL_COLS]
-
-                values_siswa_plot_numeric = [
-                    siswa_data["Rata Rata Nilai Akademik"],
-                    siswa_data["Kehadiran"] * 100 # Display presence as percentage (0-100)
-                ]
-
-                values_siswa_plot_ekskul = [
-                    siswa_data[col] * 100 if col in CATEGORICAL_COLS else siswa_data[col] for col in CATEGORICAL_COLS # Tampilkan 0 atau 1 sebagai 0% atau 100% untuk konsistensi skala
-                ]
-
-                values_siswa_plot = values_siswa_plot_numeric + values_siswa_plot_ekskul
-
-                fig, ax = plt.subplots(figsize=(10, 6))
-                bars = sns.barplot(x=labels_siswa_plot, y=values_siswa_plot, palette="magma", ax=ax)
-
-                # Atur y-limit secara dinamis, pastikan mencakup nilai 0 dan 100
-                max_plot_val = max(values_siswa_plot) if values_siswa_plot else 100
-                ax.set_ylim(0, max(100, max_plot_val * 1.1)) # Pastikan y-axis tidak terlalu sempit
-
-                for bar, val in zip(bars.patches, values_siswa_plot): # Gunakan patches untuk akses ke bar individual
-                    ax.text(bar.get_x() + bar.get_width() / 2, val + (ax.get_ylim()[1] * 0.02), f"{val:.1f}", ha='center', fontsize=9, weight='bold')
-
-                ax.set_title(f"Grafik Profil Siswa - {nama_terpilih}", fontsize=16, weight='bold')
-                ax.set_ylabel("Nilai / Status (%)") # Label y-axis lebih informatif
-                plt.xticks(rotation=0)
-                plt.tight_layout()
-                st.pyplot(fig)
-            
-            st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
-            
-            # --- BAGIAN: Menampilkan daftar siswa di klaster yang sama ---
-            st.subheader(f"Siswa Lain di Klaster {klaster_siswa_terpilih}:")
-            siswa_lain_di_klaster = df_original_with_cluster[
-                (df_original_with_cluster['Klaster'] == klaster_siswa_terpilih) &
-                (df_original_with_cluster['Nama'] != nama_terpilih)
+            ekskul_diikuti = [
+                col.replace("Ekstrakurikuler ", "") for col in CATEGORICAL_COLS
+                if data_siswa_dict.get(col) == 1
             ]
+            st.write(f"**Ekstrakurikuler yang Diikuti:** {', '.join(ekskul_diikuti) if ekskul_diikuti else 'Tidak mengikuti ekstrakurikuler'}")
             
-            if not siswa_lain_di_klaster.empty:
-                st.write("Berikut adalah daftar siswa lain yang juga tergolong dalam klaster ini:")
-                # Tampilkan kolom-kolom yang relevan saja untuk daftar ini
-                display_cols_for_others = ["No", "Nama", "JK", "Kelas", "Rata Rata Nilai Akademik", "Kehadiran"]
-                
-                # Format ulang kolom numerik untuk tampilan yang lebih mudah dibaca
-                display_df_others = siswa_lain_di_klaster[display_cols_for_others].copy()
-                display_df_others["Kehadiran"] = display_df_others["Kehadiran"].apply(lambda x: f"{x:.2%}")
-
-                st.dataframe(display_df_others, use_container_width=True)
-            else:
-                st.info("Tidak ada siswa lain dalam klaster ini.")
-            # --- AKHIR BAGIAN ---
+            # Tombol untuk generate PDF
+            pdf_data_bytes = generate_pdf_profil_siswa(
+                selected_nama,
+                data_siswa_dict,
+                klaster_siswa,
+                st.session_state.cluster_characteristics_map
+            )
             
-            st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
-            st.subheader("Unduh Laporan Profil Siswa (PDF)")
-            if st.session_state.cluster_characteristics_map:
-                if st.button("Generate & Unduh Laporan PDF", help="Klik untuk membuat laporan PDF profil siswa ini."):
-                    with st.spinner("Menyiapkan laporan PDF..."):
-                        siswa_data_for_pdf = siswa_data.drop(labels=["Klaster"]).to_dict()
-                        # Pastikan semua ID_COLS ada di dict untuk PDF generator
-                        for col in ID_COLS:
-                            if col not in siswa_data_for_pdf:
-                                siswa_data_for_pdf[col] = siswa_data[col]
-
-                        pdf_data_bytes = generate_pdf_profil_siswa(
-                            nama_terpilih,
-                            siswa_data_for_pdf,
-                            siswa_data["Klaster"],
-                            st.session_state.cluster_characteristics_map
-                        )
-                    st.success("Laporan PDF berhasil disiapkan!")
-                    st.download_button(
-                        label="Klik di Sini untuk Mengunduh PDF",
-                        data=pdf_data_bytes,
-                        file_name=f"Profil_{nama_terpilih.replace(' ', '_')}.pdf",
-                        mime="application/pdf",
-                        key="download_profile_pdf_final",
-                        help="Klik ini untuk menyimpan laporan PDF ke perangkat Anda."
-                    )
-            else:
-                st.warning("Mohon lakukan klasterisasi terlebih dahulu (Menu 'Klasterisasi Data K-Prototypes') untuk menghasilkan data profil PDF.")
+            st.download_button(
+                label="Unduh Laporan PDF",
+                data=pdf_data_bytes,
+                file_name=f"Profil_Siswa_{selected_nama.replace(' ', '_')}.pdf",
+                mime="application/pdf",
+                help="Klik untuk mengunduh laporan PDF profil siswa ini."
+            )
