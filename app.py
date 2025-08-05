@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from kmodes.kprototypes import KPrototypes
-from fpdf2 import FPDF  # <-- PERBAIKAN: Ganti 'fpdf' menjadi 'fpdf2'
+from fpdf import FPDF
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
