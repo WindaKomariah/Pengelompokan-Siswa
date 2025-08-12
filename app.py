@@ -1216,3 +1216,4 @@ elif st.session_state.current_menu == "Lihat Profil Siswa Individual":
                 st.warning("Mohon lakukan klasterisasi terlebih dahulu (Menu 'Klasterisasi Data K-Prototypes') untuk menghasilkan data profil PDF.")
 
 
+
